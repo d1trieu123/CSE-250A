@@ -1,0 +1,56 @@
+import random
+import matplotlib.pyplot as plt
+
+alpha = 0.1
+num_samples = 1000000
+arr = [2, 5, 8, 10]
+
+def f_b(arr):
+    return sum(arr[i] * (2 ** (len(arr) - i - 1)) for i in range(len(arr)))
+
+def prob_z(arr, alpha):
+  
+    return (1 - alpha) / (1 + alpha) * (alpha ** abs(128 - f_b(arr)))
+
+def get_likelihood(alpha, num_samples, arr):
+   
+    y_values = [i for i in range(1, num_samples + 1)]
+
+    for val in arr:
+        num = {i: 0 for i in arr}
+        denom = {i: 0 for i in arr}
+        data = {i: [] for i in arr}
+
+        for i in range(num_samples):
+            sample = [random.randint(0, 1) for _ in range(10)]
+            if sample[len(sample) - val] == 1:
+                indic = 1
+            else:
+                indic = 0
+            
+            f_b = prob_z(sample, alpha)
+
+            num[val] += indic * f_b
+            denom[val] += f_b
+
+            if i % 10000 == 0:
+                data[val].append(num[val] / (denom[val] + 0.0001))
+            else:
+                data[val].append(data[val][-1] if data[val] else data[val][-2])  # Use the previous value
+
+        probabilities = {i: num[i] / (denom[i] + 0.0001) for i in arr}
+        print(f"P(B = {val} | Z=128) = {probabilities[val]}")
+        plt.plot(y_values[:len(data[val])], data[val], label=f'B={val}')
+
+  
+            
+
+    plt.xlabel("# of samples")
+    plt.ylabel('probability')
+    plt.title('Likelihood Weighting')
+    plt.legend()
+    plt.show()
+
+
+
+get_likelihood(alpha, num_samples, arr)
