@@ -1,83 +1,88 @@
-
-
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 # Load data
-train3 = np.loadtxt("HW5/train3.txt", dtype = int)
-train5 = np.loadtxt("HW5/train5.txt", dtype = int)
-test3 = np.loadtxt("HW5/test3.txt", dtype = int)
-test5 = np.loadtxt("HW5/test5.txt", dtype = int)
+test3_data = np.loadtxt('HW5/test3.txt')
+test5_data = np.loadtxt('HW5/test5.txt')
+train3_data = np.loadtxt('HW5/train3.txt')
+train5_data = np.loadtxt('HW5/train5.txt')
 
+# Sigmoid function
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
-training = np.append(train3, train5, axis = 0)
-test = np.append(test3, test5, axis = 0)
-trainer = [0] * train3.shape[0] + [1] * train5.shape[0]
-tester = [0] * test3.shape[0] + [1] * test5.shape[0]
+# Logistic Regression fit function using gradient ascent
+def fit_logistic_regression(X, y, learning_rate=0.01, iterations=1000):
+    n_samples, n_features = X.shape
+    weights = np.zeros(n_features)
+    log_likelihood_vals = []
 
-iterations = 5000
+    for _ in range(iterations):
+        linear_pred = np.dot(X, weights)
+        predictions = sigmoid(linear_pred)
+        log_likelihood = np.sum(y * np.log(predictions) + (1 - y) * np.log(1 - predictions))
+        log_likelihood_vals.append(log_likelihood)
 
-def sigmoid(weight, x):
-    return 1 / (1 + np.exp(-np.dot(x, weight)))
+        dw = (1 / n_samples) * np.dot(X.T, (y - predictions))  
+        weights += learning_rate * dw  
 
-def log_likelihood(weight, x, y):
-    return np.sum(y * np.log(sigmoid(weight, x)) + (1 - y) * np.log(1 - sigmoid(weight, x)))
+    return weights, log_likelihood_vals
 
-def gradient(weight, x, y):
-    return x * (y - sigmoid(weight, x))
+# Logistic Regression predict function
+def predict_logistic_regression(X, weights):
+    linear_pred = np.dot(X, weights)
+    y_pred = sigmoid(linear_pred)
+    class_pred = [0 if y <= 0.5 else 1 for y in y_pred]
+    return class_pred
 
+def calculate_error_rate(predictions, true_labels):
+    incorrect_predictions = np.sum(predictions != true_labels)
+    error_rate = incorrect_predictions / len(true_labels)
+    return error_rate
 
-def learn(x, y):
-    t = x.shape[0]
-    learning_rate = 0.0001
-    w = np.random.randint(2, size = x.shape[1])
-    list_lw = []
-    list_pe = []
-    for i in range(iterations):
-        lw = 0
-        correct = 0
-        sums = [0] * x.shape[1]
-        for j in range(t):
-            lw += log_likelihood(w, x[j], y[j])
-            sums += gradient(w, x[j], y[j])
-            if (sigmoid(w, x[j]) >= 0.5 and y[j] == 1) or (sigmoid(w, x[j]) < 0.5 and y[j] == 0):
-                correct += 1
-        list_lw.append(lw)
-        w = w + learning_rate * sums
-        err = (t-correct)/float(t)
-        list_pe.append(err)
-        if i % 100 == 0:
-            print("Iteration: %d, Error: %.4f" % (i, err))
-    return list_lw, w, list_pe
+# Concatenate data for training and testing
+X_test = np.concatenate((test3_data, test5_data))
+y_test = np.concatenate((np.zeros(len(test3_data)), np.ones(len(test5_data))))
 
-def predict(w, x, y):
-    correct = 0
-    for i in range(x.shape[0]):
-        if (sigmoid(w, x[i]) >= 0.5 and y[i] == 1) or (sigmoid(w, x[i]) < 0.5 and y[i] == 0):
-            correct += 1
-    return (x.shape[0] - correct)/float(x.shape[0])
+X_train = np.concatenate((train3_data, train5_data))
+y_train = np.concatenate((np.zeros(len(train3_data)), np.ones(len(train5_data))))
 
-trainedLw, trainedW, trainedPe = learn(training, trainer)
+# Train the model using gradient ascent
+weights, log_likelihood_vals = fit_logistic_regression(X_train, y_train, learning_rate=0.01, iterations=1000)
 
+# Make predictions
+test_predictions = predict_logistic_regression(X_test, weights)
+train_predictions = predict_logistic_regression(X_train, weights)
 
+# Accuracy calculation
+def accuracy(predictions, true_labels):
+    return np.sum(predictions == true_labels) / len(true_labels)
 
-plt.plot(trainedLw)
-plt.xlabel("Iterations")
-plt.ylabel("Log likelihood")
-plt.title("Log likelihood vs Iterations")
+test_accuracy = accuracy(test_predictions, y_test)
+train_accuracy = accuracy(train_predictions, y_train)
+
+# Print accuracies
+print("Test accuracy: ", test_accuracy)
+print("Train accuracy: ", train_accuracy)
+
+# Plot log likelihood
+plt.plot(range(1000), log_likelihood_vals)
+plt.xlabel('Iterations')
+plt.ylabel('Log Likelihood')
 plt.show()
 
-plt.plot(trainedPe)
-plt.xlabel("Iterations")
-plt.ylabel("Prediction Error")
-plt.title("Prediction Error vs Iterations")
-plt.show()
+# print weights matrix
+def print_weights_matrix(weights):
+    weights_matrix = np.array(weights).reshape(8, 8)
+    print("Weights Matrix:")
+    for row in weights_matrix:
+        print(row)
 
-def print_weight_matrix(trainedW):
-    weight_matrix = trainedW.reshape((8, 8))
-    for row in weight_matrix:
-        print(' '.join(f'{val:.2f}' for val in row))
 
-print_weight_matrix(trainedW)
+print_weights_matrix(weights)
 
+
+test_error_rate = calculate_error_rate(test_predictions, y_test)
+
+# Print the error rate
+print("Test error rate: {:.2%}".format(test_error_rate))
