@@ -1,6 +1,6 @@
 words = {}
 
-file_path = "hw1_word_counts_05.txt"
+file_path = "HW1/hw1_word_counts_05.txt"
 
 # this puts all the txt file into a dictionary
 with open(file_path, "r") as file:
